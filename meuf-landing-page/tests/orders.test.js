@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {validateOrder,onRequestPost} from '../functions/api/orders.js';import {config} from '../public/js/config.js';
+const settings={...config,shippingFee:25};const sample={requestId:'123e4567-e89b-42d3-a456-426614174000',name:'Client Test',phone:'+212612345678',city:'Casablanca',address:'Rue Exemple 12',productId:config.productId,color:'kaki',size:'M',quantity:2,unitPrice:1,total:1,consent:true,attribution:{utm_source:'facebook',unwanted:'ignored'}};
+test('server computes trusted price and shipping',()=>{const d=validateOrder(sample,settings);assert.equal(d.subtotal,258);assert.equal(d.total,283);assert.deepEqual(d.attribution,{utm_source:'facebook'});});
+test('rejects malformed or missing order attributes',()=>{for(const patch of [{phone:'123'},{size:'XXL'},{quantity:0},{quantity:1.5},{quantity:11},{color:'blue'},{address:'x'},{website:'spam'},{requestId:'bad'}])assert.equal(validateOrder({...sample,...patch},settings),null);});
+test('rejects unknown delivery price',()=>assert.equal(validateOrder(sample,config),null));
+test('ignores attribution without opt-in',()=>assert.deepEqual(validateOrder({...sample,consent:false},settings).attribution,{}));
+test('demo mode cannot record orders',async()=>{const r=await onRequestPost({request:new Request('https://example.com/api/orders',{method:'POST'}),env:{}});assert.equal(r.status,503);});
